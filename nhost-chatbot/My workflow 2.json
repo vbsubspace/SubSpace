@@ -1,0 +1,249 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "hasura-send-message",
+        "options": {}
+      },
+      "id": "4ddabcbd-99d4-4ca7-9eda-8179dd98042b",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookMethods": {
+        "POST": true
+      },
+      "webhookId": "df2964a3-1d76-4db0-ac3b-036957dbbf58"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://skqogjyfhxvtlqzptbvc.hasura.ap-south-1.nhost.run/v1/graphql",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\n  \"query\": \"query GetChat($id: uuid!) { chats_by_pk(id: $id) { id user_id } }\",\n  \"variables\": {\n    \"id\": \"={{$json[\\\"body\\\"][\\\"input\\\"][\\\"chat_id\\\"]}}\"\n  }\n}",
+        "headerParametersJson": "={\n  \"Authorization\": \"={{$json[\\\"headers\\\"][\\\"authorization\\\"]}}\",\n  \"Content-Type\": \"application/json\"\n}"
+      },
+      "id": "24f3ec38-a80d-4704-8170-76d462e3d515",
+      "name": "Hasura GraphQL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        272,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "06471731-0eef-453e-b783-9bfc9b9d57a6",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        528,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "n8n workflow (cloud) Go to https://n8n.cloud → create/open your instance → Workflows → New → Import from file → upload the n8n-workflow.json from the repo. Edit nodes: “Check Chat Ownership”, “Insert User Message”, “Insert Assistant Message”: URL: set to your Nhost GraphQL, e.g. https://backend-xxxx.nhost.run/v1/graphql “OpenRouter Chat”: Credentials: create OpenAI credentials with your OpenRouter API key Base URL: https://openrouter.ai/api Optional headers: HTTP-Referer = your Netlify URL, X-Title = Nhost Chatbot “Webhook” node: Copy the Production URL. Activate the workflow.",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\n  \"query\": \"query GetChat($id: uuid!) { chats_by_pk(id: $id) { id user_id } }\",\n  \"variables\": { \"id\": \"={{$json[\\\"body\\\"][\\\"input\\\"][\\\"chat_id\\\"]}}\" }\n}",
+        "headerParametersJson": "={\n  \"Authorization\": \"={{$json[\\\"headers\\\"][\\\"authorization\\\"]}}\",\n  \"Content-Type\": \"application/json\"\n}"
+      },
+      "id": "1fa3c300-e98e-4326-92cc-b1ee316b3fd8",
+      "name": "HTTP Request - Validate Chat Ownership",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const userIdFromChat = $json[\"data\"][\"chats_by_pk\"]?.[\"user_id\"];\nconst userIdFromHeader = $items(\"Webhook Trigger\", 0).json[\"headers\"]?.[\"x-hasura-user-id\"];\nif (userIdFromChat !== userIdFromHeader) {\n  return [{ json: { error: 'Forbidden', status: 403 } }];\n}\nreturn items;"
+      },
+      "id": "a0a3a558-7fc6-4508-ba60-05f584edff31",
+      "name": "Check Ownership",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        80,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://YOUR-HASURA-ENDPOINT/v1/graphql",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\n  \"query\": \"query GetMessages($chat_id: uuid!) { messages(where: {chat_id: {_eq: $chat_id}}, order_by: {created_at: asc}, limit: 20) { role content created_at } }\",\n  \"variables\": { \"chat_id\": \"={{$json[\\\"body\\\"][\\\"input\\\"][\\\"chat_id\\\"]}}\" }\n}",
+        "headerParametersJson": "={\n  \"Authorization\": \"={{$json[\\\"headers\\\"][\\\"authorization\\\"]}}\",\n  \"Content-Type\": \"application/json\"\n}"
+      },
+      "id": "4d37bdaf-42c4-48ca-9420-cd7c10ed6051",
+      "name": "HTTP Request - Fetch Last Messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        336,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.openrouter.ai/v1/chat/completions",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\n  \"model\": \"openai/gpt-4o-mini\",\n  \"messages\": [\n     {\"role\":\"system\",\"content\":\"You are a helpful assistant.\"},\n     {\"role\":\"user\",\"content\":\"={{$items(\\\"Webhook Trigger\\\", 0).json[\\\"body\\\"][\\\"input\\\"][\\\"content\\\"]}}\"}\n  ],\n  \"max_tokens\": 500\n}",
+        "headerParametersJson": "={\n  \"Authorization\": \"Bearer {{$credentials.OPENROUTER_KEY}}\",\n  \"Content-Type\": \"application/json\"\n}"
+      },
+      "id": "e81b2756-216f-471d-a85e-c3a4f96f226e",
+      "name": "HTTP Request - OpenRouter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        336,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://YOUR-HASURA-ENDPOINT/v1/graphql",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\n  \"query\": \"mutation InsertBot($chat_id: uuid!, $content: String!){ insert_messages_one(object: {chat_id: $chat_id, role: \\\"bot\\\", content: $content}) { id content created_at } }\",\n  \"variables\": {\n    \"chat_id\": \"={{$items(\\\"Webhook Trigger\\\", 0).json[\\\"body\\\"][\\\"input\\\"][\\\"chat_id\\\"]}}\",\n    \"content\": \"={{$json[\\\"choices\\\"][0][\\\"message\\\"][\\\"content\\\"] || $json[\\\"reply\\\"] || ''}}\"\n  }\n}",
+        "headerParametersJson": "={\n  \"x-hasura-admin-secret\": \"{{$credentials.HASURA_ADMIN_SECRET}}\",\n  \"Content-Type\": \"application/json\"\n}"
+      },
+      "id": "369c31ab-b6b4-4ad2-8e3d-8f494ee7373e",
+      "name": "HTTP Request - InsertBot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        608,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "path": "hasura-send-message",
+        "options": {}
+      },
+      "id": "6d2f6c63-a110-4046-ad3e-7095e6533074",
+      "name": "Webhook Trigger1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -48
+      ],
+      "webhookMethods": {
+        "POST": true
+      },
+      "webhookId": "567ee254-2f42-4fdf-be86-08b7af90942d"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "31d93f47-2cb0-4bb9-9ca2-1e00d0a704a5",
+      "name": "Respond to Webhook1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        864,
+        -32
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Hasura GraphQL": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Validate Chat Ownership": {
+      "main": [
+        [
+          {
+            "node": "Check Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Ownership": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - OpenRouter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - OpenRouter": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - InsertBot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - InsertBot": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Validate Chat Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7b9e0b37-10ac-4554-89fd-95aef50d77f1",
+  "meta": {
+    "instanceId": "a778d6ba1d9773da1e62ffec0baf1dc3adc5589ce1604f4f56c76d4832798a69"
+  },
+  "id": "lk05SXS7JaOnM6oJ",
+  "tags": []
+}
