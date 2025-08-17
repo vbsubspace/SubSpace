@@ -8,9 +8,7 @@ Cloud-only chatbot with:
 - React + Vite frontend on Netlify, using only GraphQL queries/mutations/subscriptions
 
 ## Environment Variables (Netlify)
-- `VITE_NHOST_SUBDOMAIN` (from Nhost Settings → Frontend)
-- `VITE_NHOST_REGION`
-- Or `VITE_NHOST_BACKEND_URL` instead of the two above
+- `VITE_NHOST_BACKEND_URL` (from Nhost Settings → Backend URL)
 
 ## Hasura Tables (SQL)
 Create in Hasura Console → Data → SQL:
