@@ -7,8 +7,6 @@ import App from './App'
 import './App.css'
 
 const nhost = new NhostClient({
-  subdomain: import.meta.env.VITE_NHOST_SUBDOMAIN,
-  region: import.meta.env.VITE_NHOST_REGION,
   backendUrl: import.meta.env.VITE_NHOST_BACKEND_URL,
 })
 
