@@ -6,9 +6,18 @@ import { NhostApolloProvider } from '@nhost/react-apollo'
 import App from './App'
 import './App.css'
 
-const nhost = new NhostClient({
-  backendUrl: import.meta.env.VITE_NHOST_BACKEND_URL,
-})
+// Support both BACKEND_URL and SUBDOMAIN/REGION as per README
+const backendUrl = import.meta.env.VITE_NHOST_BACKEND_URL as string | undefined
+const subdomain = import.meta.env.VITE_NHOST_SUBDOMAIN as string | undefined
+const region = import.meta.env.VITE_NHOST_REGION as string | undefined
+
+const nhost = new NhostClient(
+  backendUrl
+    ? { backendUrl }
+    : subdomain && region
+    ? { subdomain, region }
+    : {}
+)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
